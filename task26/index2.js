@@ -17,7 +17,6 @@ function setCommand(commandBox,commander){
 		var btnCommand = button.getAttribute("command");
 		if(btnCommand){
 			var str  = "send"+btnCommand;
-			console.log(commander);
 			commander["send"+btnCommand](command.id);
 		}
 		if(button.getAttribute("new")){
@@ -31,7 +30,33 @@ Star={
 	L:155,
 	T:140,
 }
-
+Command = function(receiver,command){
+	this.receiver = receiver;
+	this.command = command;
+}
+Command.prototype.execute = function(){
+	delayOneSecond(
+		this.receiver,
+		this.command
+	)
+};
+function delayOneSecond(ship,command){
+	console.log("正在发送给飞船"+ship.id+"命令");
+	setTimeout(function(){
+		randomEvent(function(){
+			ship.accessCommand(command);
+		},function(){
+			console.log("发送给"+ship.id+"命令失败");
+		},0.7);
+	}, 1000);
+}
+function randomEvent(successFn,failFn,rand){
+	if(Math.random()<rand){
+		successFn();
+	}else{
+		failFn();
+	}
+}
 Commander = function(commandBox){
 	this.commandBox = commandBox;
 	this.ships = [];
@@ -99,7 +124,8 @@ Commander.prototype = {
 			var ship= this.ships[i];
 			
 			if(this.shipIdInUsed[i] || ship){
-				delayOneSecond(ship,{id:id,command:"stop"});
+				var commandStop = new Command(ship,{id:id,command:"stop"});/*命令模式怎么用的那么别扭呢*/
+				commandStop.execute();
 			}
 		}
 	},
@@ -109,7 +135,8 @@ Commander.prototype = {
 		for(var i =0 ; i < this.ships.length;i++){
 			ship= this.ships[i];
 			if(this.shipIdInUsed[i] || ship){
-				delayOneSecond(ship,{id:id,command:"destory"},this);
+				var commandDestory = new Command(ship,{id:id,command:"destory",ships:this.ships});/*命令模式怎么用的那么别扭呢*/
+				commandDestory.execute();
 			}
 		}
 		for(var i =0 ; i < this.shipId.length;i++){
@@ -129,23 +156,8 @@ Commander.prototype = {
 // 		fn();
 // 	},1000);
 // }
-function delayOneSecond(ship,command,commander){
-	console.log("正在发送给飞船"+ship.id+"命令");
-	setTimeout(function(){
-		randomEvent(function(){
-			ship.accessCommand(command,commander);
-		},function(){
-			console.log("发送给"+ship.id+"命令失败");
-		},0.7);
-	}, 1000);
-}
-function randomEvent(successFn,failFn,rand){
-	if(Math.random()<rand){
-		successFn();
-	}else{
-		failFn();
-	}
-}
+
+
 Ship = function(id,dom,commandDom){
 	this.id = id;
 	this.isFlying = false;
@@ -157,9 +169,9 @@ Ship.prototype = {
 	width:110,
 	height:30,
 	constructor:Ship,
-	accessCommand:function(command,commander){//这里感觉可以用策略模式的
+	accessCommand:function(command){//这里感觉可以用策略模式的
 		if(this.id == command.id ){
-			this[command.command](commander);
+			this[command.command](command.ships);
 		}
 	},
 	start:function(){
@@ -213,17 +225,17 @@ Ship.prototype = {
 	clearTimer:function(timer){
 		clearInterval(timer);
 	},
-	destory:function(commander){
+	destory:function(ships){
 		this.clearTimer(this.timer);
 		this.clearTimer(this.timer2);
 		this.clearTimer(this.timer3);
 		var star = document.getElementsByClassName("star")[0];
 		star.removeChild(this.dom);
-		deleteObjOnArr(commander.ships,this);
+		deleteObjInArr(ships,this);
 	}
 }
 
-function deleteObjOnArr(arr,obj){
+function deleteObjInArr(arr,obj){
 	for(var i = 0 ; i < arr.length; i++){
 		if(arr[i] == obj){
 			arr.splice(i,1);
